@@ -7,9 +7,9 @@ The playbooks are tested on RHEL 7 and probably can work on any "systemd" distri
 ## Prerequisites
 Systemd unit for the new tomcat instance must be already configured.
 ## Playbooks description
-* deploy-sap-bo-tomcat.yml
-This Playbook copy the default SAP BO tomcat binary (only the binary) to a wished location \
-```
+* deploy-sap-bo-tomcat.yml \
+This Playbook copy the default SAP BO tomcat binary (only the binary) to a wished location
+  ```
   Task List:
     play #1 (boserver01.pf.box): Deploy custom Tomcat instance based on existing binary installed in SAP BO	TAGS: []
     tasks:
@@ -23,9 +23,9 @@ This Playbook copy the default SAP BO tomcat binary (only the binary) to a wishe
       Untar tomcat binary to /home/boadmin/thttpbot/tomcat.{{ tomcat_version }}	TAGS: []
       Create a symbolic link to tomcat version -> {{ tomcat_version }}	TAGS: []
       Change bobjenv.sh path in setenv.sh	TAGS: []
- ```
+  ```
 * deploy-tomcat-instance.yml
-  This playbook create a custom Tomcat instance bei passing the instance as a variable. \
+  This playbook create a custom Tomcat instance bei passing the instance as a variable.
   ```
   Task List:
     play #1 (boserver01.pf.box): Deploy custom Tomcat instance bossos1-2-3 or fassade	TAGS: []
