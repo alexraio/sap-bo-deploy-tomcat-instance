@@ -1,0 +1,22 @@
+tomcat_version: 8.5.13
+temp_archive: "/tmp/tomcat_{{ansible_date_time.date}}.tgz"
+default_tomcat: /opt/bobj/sap_bobj/tomcat
+dest_tomcat_binary: /home/boadmin/thttpbot/tomcat.{{ tomcat_version }}
+dest_tomcat: /home/boadmin/thttpbot
+tomcat_user: boadmin
+tomcat_group: boadm
+tomcat_instance: ""
+sap_default_war_file: /opt/bobj/sap_bobj/enterprise_xi40/wdeploy/workdir/tomcat8/application
+bo_war_files: 
+  - AdminTools.war
+  - bipodata.war
+  - biprws.war
+  - BOE.war
+  - BusinessProcessBI.war
+  - clientapi.war
+  - dswsbobje.war
+  - MobileBIService.war
+  - MOBIServer.war
+
+#This conditional is working but I think I prefere the set_fact way to define variables dinamically. (use "elif" if I want to continue)
+#+ tomcat_shutdown_port: "{% if tomcat_instance == 'bosso2' %}'8006'{% endif %}"

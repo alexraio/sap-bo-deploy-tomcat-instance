@@ -1,0 +1,18 @@
+---
+- name: Add_remove cron job
+  hosts: boserver01.pf.box
+  become: yes
+  become_method: sudo
+  become_user: boadmin
+
+
+  tasks:
+  - name: Stop BO Server DB tomcat daily at 23
+    cron:
+      name: "Stop BO Total"
+      user: "boadmin"
+      minute: "30"
+      hour: "23"
+      job: "/opt/bobj/sap_bobj/stopservers ; sleep 30 ; /opt/bobj/sap_bobj/sqlanywhere_shutdown.sh : sleep 10 ; sudo systemctl stop tbosso2.service  > /dev/null 2>&1"
+
+

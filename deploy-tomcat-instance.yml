@@ -1,0 +1,163 @@
+---
+- name: Deploy custom Tomcat instance bossos1-2-3 or fassade
+  hosts: boserver01.pf.box
+  become: yes
+  become_method: sudo
+  become_user: boadmin
+  vars:
+    my_verbosity: 0
+    
+    #dest_tomcat: /home/boadmin/thttpbot
+    #tomcat_user: boadmin
+    #tomcat_group: boadm
+    #tomcat_instance: ""
+    #default_tomcat: /opt/bobj/sap_bobj/tomcat
+    #temp_archive: /tmp/tomcat.tgz
+    #sap_default_war_file: /opt/bobj/sap_bobj/enterprise_xi40/wdeploy/workdir/tomcat8/application
+    #This conditional is working but I think I prefere the set_fact way to define variables dinamically. (use "elif" if I want to continue)
+    #+ tomcat_shutdown_port: "{% if tomcat_instance == 'bosso2' %}'8006'{% endif %}"
+
+  tasks:
+
+    - name: Check if Instance variable is defined
+      fail:
+        msg: 'Please fill the variable "tomcat_instance" with an Instance name'
+      when: tomcat_instance|length == 0
+
+    - name: Continue if variable defined  
+      debug:
+        msg: "Debug |Good - The variable {{tomcat_instance}} is defined! We can go on."
+        verbosity: "{{my_verbosity}}"
+      when: (tomcat_instance is defined) and (tomcat_instance|length > 0)
+
+    - block:
+      - name: set extra Tomcat facts if bosso1 instance
+        set_fact:
+          tomcat_shutdown_port: 8006
+          tomcat_http_connector_port: 8081
+        when: (tomcat_instance == "bosso1")
+
+      - name: set extra Tomcat facts if bosso2 instance
+        set_fact:
+          tomcat_shutdown_port: 8007
+          tomcat_http_connector_port: 8082
+        when: (tomcat_instance == "bosso2")
+
+      - name: "Debug | list {{tomcat_instance}} instance extra facts"
+        debug:
+          msg: |
+            Shutdown Port -> "{{tomcat_shutdown_port}}"
+            http connector port ->  "{{tomcat_http_connector_port}}"
+          verbosity: "{{my_verbosity}}"
+     
+    - name: Check if tomcat is running
+      shell: "ps -ef | grep -v grep | grep tomcat | grep {{tomcat_instance}}"
+      register: command_result
+      ignore_errors: yes
+    
+    - block:
+      - name: stop tomcat instance if running
+        debug:
+          msg: "Tomcat instance {{tomcat_instance}} is running - I will STOP IT!!!"
+          verbosity: "{{my_verbosity}}"
+      - systemd:
+          name: "t{{tomcat_instance}}.service"
+          state: stopped
+        become: yes
+        become_user: root
+        become_method: sudo
+      when: command_result.rc == 0
+    
+    - name: delete tomcat instance if existing 
+      file:
+        path: "{{dest_tomcat}}/{{tomcat_instance}}"
+        state: absent
+
+    - name: generate tomcat instance directory if not exists
+      file:
+        path: "{{dest_tomcat}}/{{tomcat_instance}}"
+        state: directory
+        mode: 02755
+
+    - name: Archive default BO Tomcat Instace
+      archive:
+        path: "{{ default_tomcat }}/*"
+        dest: "{{ temp_archive }}"
+        exclude_path: 
+          - "{{ default_tomcat }}/bin"
+          - "{{ default_tomcat }}/lib"
+          - "{{ default_tomcat }}/temp"
+          - "{{ default_tomcat }}/webapps"
+          - "{{ default_tomcat }}/work"
+          - "{{ default_tomcat }}/logs"
+        format: gz
+
+    - name: "Untar tomcat fefault instance to {{dest_tomcat}}/{{tomcat_instance}}"
+      unarchive:
+        src: "{{ temp_archive }}"
+        dest: "{{dest_tomcat}}/{{tomcat_instance}}"
+        remote_src: yes
+
+    - name: "generate std missing directory in the tomcat instance {{tomcat_instance}}"
+      file:
+        path: "{{item}}"
+        state: directory
+        mode: 02755
+      loop:
+        - "{{dest_tomcat}}/{{tomcat_instance}}/temp"
+        - "{{dest_tomcat}}/{{tomcat_instance}}/webapps"
+        - "{{dest_tomcat}}/{{tomcat_instance}}/work"
+        - "{{dest_tomcat}}/{{tomcat_instance}}/logs"
+
+    - name: Configure Server.xml of the instance
+      template:
+        src: /home/ansible/ansible/templates/server.xml.j2
+        dest: "{{dest_tomcat}}/{{tomcat_instance}}/conf/server.xml"
+        owner: boadmin
+        group: boadm
+        mode: 0644
+        backup: yes
+
+    - name: copy-deploy default BO war files
+      copy:
+        src: "{{sap_default_war_file}}/{{item}}" 
+        dest: "{{dest_tomcat}}/{{tomcat_instance}}/webapps"
+        remote_src: yes
+      with_items:
+        - "{{bo_war_files}}"
+
+    - name: Debug | bo war file list
+      debug:
+        var: bo_war_files
+        verbosity: "{{my_verbosity}}"
+
+    - name: Start tomcat instance
+      systemd:
+        name: "t{{tomcat_instance}}.service"
+        state: started
+      become: yes
+      become_user: root
+      become_method: sudo
+
+    - name: Waiting till service is available
+      wait_for:
+        timeout: 1800
+        path: "{{dest_tomcat}}/{{tomcat_instance}}/logs/catalina.out" 
+        search_regex: "Server startup in"
+
+    - name: Stop tomcat instance
+      systemd:
+        name: "t{{tomcat_instance}}.service"
+        state: stopped
+      become: yes
+      become_user: root
+      become_method: sudo
+
+    - name: Delete war files
+      file:
+        path: "{{dest_tomcat}}/{{tomcat_instance}}/webapps/{{item}}"
+        state: absent
+      with_items:
+        - "{{bo_war_files}}"
+
+

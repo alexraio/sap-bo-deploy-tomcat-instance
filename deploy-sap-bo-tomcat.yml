@@ -1,0 +1,82 @@
+---
+- name: Deploy custom Tomcat instance based on existing binary installed in SAP BO 
+  hosts: boserver01.pf.box
+  become: yes
+  become_method: sudo
+  become_user: boadmin
+#  vars:
+#    tomcat_version: 8.5.13
+#    temp_archive: /tmp/tomcat.tgz
+#    default_tomcat: /opt/bobj/sap_bobj/tomcat
+#    dest_tomcat_binary: /home/boadmin/thttpbot/tomcat.{{ tomcat_version }}
+#    tomcat_user: boadmin
+#    tomcat_group: boadm
+
+
+  tasks:
+    - name: check if tomcat is running
+      shell: "ps -ef | grep -v grep | grep tomcat"
+      register: command_result
+      ignore_errors: yes
+
+    - block:
+      - name: End play if tomcat is running
+        debug:
+          msg: Tomcat is running - we stop here
+      - meta: end_play
+      when: command_result.rc == 0
+
+    - name: continue if tomcat is NOT running
+      debug:
+        msg: tomcat is NOT running -> OK!!!
+      when: command_result.rc == 1
+
+    - name: Archive default BO Tomcat binary
+      archive:
+        path: "{{ default_tomcat }}/*"
+        dest: "{{ temp_archive }}"
+        exclude_path: 
+        - /opt/bobj/sap_bobj/tomcat/webapps
+        - /opt/bobj/sap_bobj/tomcat/work
+        - /opt/bobj/sap_bobj/tomcat/conf
+        - /opt/bobj/sap_bobj/tomcat/temp
+        - /opt/bobj/sap_bobj/tomcat/logs
+        format: gz
+
+    - name: stat tomcat binary
+      stat: 
+        path: "{{ dest_tomcat_binary }}"
+      register: folder_exist
+
+    - name: Backup|move tomcat binary
+      command: "mv {{ dest_tomcat_binary }} {{ dest_tomcat_binary }}.bak"
+      when: folder_exist.stat.exists
+
+    - name: make tomcat folder 
+      file:
+        path: "{{ dest_tomcat_binary }}"
+        state: directory
+        mode: '2755'
+
+    - name: "Untar tomcat binary to /home/boadmin/thttpbot/tomcat.{{ tomcat_version }}"
+      unarchive:
+        src: "{{ temp_archive }}"
+        dest: "{{ dest_tomcat_binary }}"
+        remote_src: yes
+        #src: /tmp/tomcat.tgz
+        #dest: /home/boadmin/thttpbot/tomcat.{{ tomcat_version }}.bis
+
+    - name: "Create a symbolic link to tomcat version -> {{ tomcat_version }}"
+      file:
+        src: /home/boadmin/thttpbot/tomcat.{{ tomcat_version }}
+        dest: /home/boadmin/thttpbot/tomcat
+        owner: "{{ tomcat_user }}"
+        group: "{{ tomcat_group }}"
+        state: link
+
+    - name: Change bobjenv.sh path in setenv.sh
+      replace:
+        path: /home/boadmin/thttpbot/tomcat/bin/setenv.sh
+        regexp: '^. ./bobjenv.sh$'
+        replace: '. /home/boadmin/thttpbot/tomcat/bin/bobjenv.sh'
+        backup: yes
