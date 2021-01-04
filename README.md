@@ -1,7 +1,7 @@
 # sap-bo-deploy-tomcat-instance
 Ansible playbooks to deploy extra tomcat instances taking the default SAP BO tomcat as template
 ## Intro
-Ansible playbooks to configure one or more extra tomcat instances to run SAP Business Object applications.
+Ansible playbooks to configure one or more extra tomcat instances to run SAP Business Object applications. \
 The Playbooks take the default SAP BO tomcat installation as template and generate a new tomcat instance with new settings.
 The playbooks are tested on RHEL 7 and probably can work on any "systemd" distribution.
 ## Prerequisites
