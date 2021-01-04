@@ -15,4 +15,4 @@
       hour: "23"
       job: "/opt/bobj/sap_bobj/stopservers ; sleep 30 ; /opt/bobj/sap_bobj/sqlanywhere_shutdown.sh : sleep 10 ; sudo systemctl stop tbosso2.service  > /dev/null 2>&1"
 
-
+# just a git test
