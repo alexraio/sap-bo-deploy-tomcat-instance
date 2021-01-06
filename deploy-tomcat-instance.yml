@@ -6,7 +6,7 @@
   become_user: boadmin
   vars:
     my_verbosity: 0
-    
+
     #dest_tomcat: /home/boadmin/thttpbot
     #tomcat_user: boadmin
     #tomcat_group: boadm
@@ -24,9 +24,9 @@
         msg: 'Please fill the variable "tomcat_instance" with an Instance name'
       when: tomcat_instance|length == 0
 
-    - name: Continue if variable defined  
+    - name: Continue if variable defined
       debug:
-        msg: "Debug |Good - The variable {{tomcat_instance}} is defined! We can go on."
+        msg: "Debug | Good - The variable {{tomcat_instance}} is defined! We can go on."
         verbosity: "{{my_verbosity}}"
       when: (tomcat_instance is defined) and (tomcat_instance|length > 0)
 
@@ -49,12 +49,12 @@
             Shutdown Port -> "{{tomcat_shutdown_port}}"
             http connector port ->  "{{tomcat_http_connector_port}}"
           verbosity: "{{my_verbosity}}"
-     
+
     - name: Check if tomcat is running
       shell: "ps -ef | grep -v grep | grep tomcat | grep {{tomcat_instance}}"
       register: command_result
       ignore_errors: yes
-    
+
     - block:
       - name: stop tomcat instance if running
         debug:
@@ -67,8 +67,8 @@
         become_user: root
         become_method: sudo
       when: command_result.rc == 0
-    
-    - name: delete tomcat instance if existing 
+
+    - name: delete tomcat instance if existing
       file:
         path: "{{dest_tomcat}}/{{tomcat_instance}}"
         state: absent
@@ -83,7 +83,7 @@
       archive:
         path: "{{ default_tomcat }}/*"
         dest: "{{ temp_archive }}"
-        exclude_path: 
+        exclude_path:
           - "{{ default_tomcat }}/bin"
           - "{{ default_tomcat }}/lib"
           - "{{ default_tomcat }}/temp"
@@ -111,7 +111,7 @@
 
     - name: Configure Server.xml of the instance
       template:
-        src: /home/ansible/ansible/templates/server.xml.j2
+        src: /home/ansible/playbooks/sap-bo-deploy-tomcat-instance/templates/server.xml.j2
         dest: "{{dest_tomcat}}/{{tomcat_instance}}/conf/server.xml"
         owner: boadmin
         group: boadm
@@ -120,7 +120,7 @@
 
     - name: copy-deploy default BO war files
       copy:
-        src: "{{sap_default_war_file}}/{{item}}" 
+        src: "{{sap_default_war_file}}/{{item}}"
         dest: "{{dest_tomcat}}/{{tomcat_instance}}/webapps"
         remote_src: yes
       with_items:
@@ -142,7 +142,7 @@
     - name: Waiting till service is available
       wait_for:
         timeout: 1800
-        path: "{{dest_tomcat}}/{{tomcat_instance}}/logs/catalina.out" 
+        path: "{{dest_tomcat}}/{{tomcat_instance}}/logs/catalina.out"
         search_regex: "Server startup in"
 
     - name: Stop tomcat instance

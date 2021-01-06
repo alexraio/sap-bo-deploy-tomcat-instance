@@ -1,5 +1,5 @@
 ---
-- name: Deploy custom Tomcat instance based on existing binary installed in SAP BO 
+- name: Deploy custom Tomcat instance based on existing binary installed in SAP BO
   hosts: boserver01.pf.box
   become: yes
   become_method: sudo
@@ -35,7 +35,7 @@
       archive:
         path: "{{ default_tomcat }}/*"
         dest: "{{ temp_archive }}"
-        exclude_path: 
+        exclude_path:
         - /opt/bobj/sap_bobj/tomcat/webapps
         - /opt/bobj/sap_bobj/tomcat/work
         - /opt/bobj/sap_bobj/tomcat/conf
@@ -44,7 +44,7 @@
         format: gz
 
     - name: stat tomcat binary
-      stat: 
+      stat:
         path: "{{ dest_tomcat_binary }}"
       register: folder_exist
 
@@ -52,7 +52,7 @@
       command: "mv {{ dest_tomcat_binary }} {{ dest_tomcat_binary }}.bak"
       when: folder_exist.stat.exists
 
-    - name: make tomcat folder 
+    - name: make tomcat folder
       file:
         path: "{{ dest_tomcat_binary }}"
         state: directory
